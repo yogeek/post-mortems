@@ -7,7 +7,7 @@ Quick notes about issues encountered in production
 
 - `kube-proxy monitoring` components were added in latest kube-prometheus release but not backported to the previous ones (in particular the one that we must use because of K8S version compatibility matrix) => PR to backport this PodMonitor to fix the kube-proxy monitoring https://github.com/prometheus-operator/kube-prometheus/pull/1715
 
-- `containerd + kubeadm` : kubeadm config image pull was used to pre-pull images in AMI, but when switching from docker to containerd, this command was not woring anymore because it does not interact with containerd => we needed to install nerdctl to have a "docker-similar" UX (but without docker) and use `kubeadm config image list` to loop over k8s images and for each do a pull with nerdctl
+- `containerd + kubeadm` : kubeadm config image pull was used to pre-pull images in AMI, but when switching from docker to containerd, this command was not working anymore because it does not interact with containerd => we needed to install nerdctl to have a "docker-similar" UX (but without docker) and use `kubeadm config image list` to loop over k8s images and for each do a pull with nerdctl
 ```
 sandbox_image=""
 for img in $(kubeadm config images list --config ./kubeadm-config.yaml); do
@@ -26,3 +26,9 @@ fi
 echo "Force pause image name in containerd to ${sandbox_image}"
 sudo sed -i "/sandbox_image /s%=.*$%= \"${sandbox_image}\"%" /etc/containerd/config.toml
 ```
+
+- Istio sidecar
+ * microdemo pods scaled up to max replicas regularly and then scaled down
+ * HPA triggered the scaling because of resource consumption, even if our app had no traffic
+ * No default Istio Sidecar configured => istio sent the whole cluster config to all istio proxies, which made the resource consumption of the pod reach the HPA target
+=> Always add a default Sidecar in istio-system
