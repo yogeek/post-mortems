@@ -27,8 +27,14 @@ echo "Force pause image name in containerd to ${sandbox_image}"
 sudo sed -i "/sandbox_image /s%=.*$%= \"${sandbox_image}\"%" /etc/containerd/config.toml
 ```
 
-- Istio sidecar
- * microdemo pods scaled up to max replicas regularly and then scaled down
- * HPA triggered the scaling because of resource consumption, even if our app had no traffic
- * No default Istio Sidecar configured => istio sent the whole cluster config to all istio proxies, which made the resource consumption of the pod reach the HPA target
-=> Always add a default Sidecar in istio-system
+- `Istio sidecar` : 
+  * microdemo pods scaled up to max replicas regularly and then scaled down
+  * HPA triggered the scaling because of resource consumption, even if our app had no traffic
+  * No default Istio Sidecar configured so istio sent the whole cluster config to all istio proxies, which made the resource consumption of the pod reach the HPA target
+  * conclusion : Always add a default Sidecar in istio-system
+
+- `AggregatedAPIErrors for  (name="v1beta1.metrics.k8s.io", prometheus="monitoring/k8s") :
+  * `kubectl get apiservice v1beta1.metrics.k8s.io -oyaml` shows that the prometheus-adapter is meant to serve this metrics API but is not responding
+  * on this specific cluster, prometheus-operator stack is installed from the helm chart instead of the kube-prometheus-stack repo (jsonnet) and the promtheus-adapter is not included in the chart, it has its own chart.
+  * metrics-server should be deleted if prometheus-adapter is deployed with "resource metrics API service" (https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus-adapter/README.md#horizontal-pod-autoscaler-metrics) : is provides the same functionality as metrics-server so we cannot install both on the same cluster (https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus-adapter/templates/resource-metrics-apiservice.yaml and https://github.com/kubernetes-sigs/metrics-server/blob/master/manifests/base/apiservice.yaml)
+ * 
