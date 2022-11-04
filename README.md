@@ -1,4 +1,4 @@
-# post-mortems
+# Post Mortems
 Quick notes about issues encountered in production
 
 ## draino and statefulset
@@ -55,3 +55,9 @@ sudo sed -i "/sandbox_image /s%=.*$%= \"${sandbox_image}\"%" /etc/containerd/con
 ## Calico and NodeLocalCacheDNS
 
 https://github.com/projectcalico/calico/issues/6910
+
+## ArgoCD + PrometheusOperator
+
+- kube-prometheus v0.9.0 does not include a `status` in the Prometheus Custom Resource so ArgoCD recent healthcheck does not work correctly and the resource is always in "Progressing"
+- https://blog.ediri.io/kube-prometheus-stack-and-argocd-23-how-to-remove-a-workaround
+- https://www.arthurkoziel.com/fixing-argocd-crd-too-long-error/
