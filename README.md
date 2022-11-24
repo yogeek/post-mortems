@@ -61,3 +61,25 @@ https://github.com/projectcalico/calico/issues/6910
 - kube-prometheus v0.9.0 does not include a `status` in the Prometheus Custom Resource so ArgoCD recently added [custom healthcheck](https://github.com/argoproj/argo-cd/tree/master/resource_customizations/monitoring.coreos.com/Prometheus) does not work correctly and the resource is always in "Progressing"
 - https://blog.ediri.io/kube-prometheus-stack-and-argocd-23-how-to-remove-a-workaround
 - https://www.arthurkoziel.com/fixing-argocd-crd-too-long-error/
+
+## ALPN http1 -> http2 connection with Istio AWS NLB
+
+client ---> Istio ingress SVC ---> backend pod
+
+- problem : connection between client and istio is HTTP1 whereas connection between istio and pod is HTTP2 (because project DestinationRule has  `h2UpgradePolicy: UPGRADE`) and for large payload (download GBs files), there is a contention in frames because HTTP2 part is much faster than HTTP1
+
+- Status : client proposes HTTP1 and HTTP2 to the server, the server chooses HTTP1 (`curl -vvv`) 
+
+client --- [http1] ---> Istio ingress --- [http2] ---> pod
+
+- In curl logs : `ALPN, server did not agree to a protocol`
+- In fact, it is not istio SVC which isin charge of the SSL negociation, but the AWS NLB created by the K8S istio ingress SVC
+
+client ---> AWS NLB ---> Istio ingress ---> backend pod
+
+- And by default, AWS NLB listener has ALPN policy to `None` so it does not do any ALPN negociation
+- By configuring ALPN Policy to `HTTP2Preferred`, the ALPN negociation can lead to an HTTP2 connection between client and NLB !
+
+client --- [http2] ---> Istio ingress --- [http2] ---> pod
+
+- WARNING : updating the SVC annotation to change a LoadBalancer option is not currently propagated to AWS LoadBalancer resource (https://github.com/kubernetes/kubernetes/issues/114111) so the modification has to be done in AWS console in addition to the source code (or the LoadBalancer service has to be deleted to be recreated with the good options)
