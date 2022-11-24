@@ -80,6 +80,6 @@ client ---> AWS NLB ---> Istio ingress ---> backend pod
 - And by default, AWS NLB listener has ALPN policy to `None` so it does not do any ALPN negociation
 - By configuring ALPN Policy to `HTTP2Preferred`, the ALPN negociation can lead to an HTTP2 connection between client and NLB !
 
-client --- [http2] ---> Istio ingress --- [http2] ---> pod
+client --- [http2] ---> (AWS NLB) Istio ingress --- [http2] ---> pod
 
 - WARNING : updating the SVC annotation to change a LoadBalancer option is not currently propagated to AWS LoadBalancer resource (https://github.com/kubernetes/kubernetes/issues/114111) so the modification has to be done in AWS console in addition to the source code (or the LoadBalancer service has to be deleted to be recreated with the good options)
